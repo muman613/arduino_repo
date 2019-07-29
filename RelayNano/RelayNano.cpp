@@ -9,19 +9,17 @@ typedef enum {
 	STATE_INIT,
 	STATE_WAITING,
 	STATE_RUNNING,
-
 } SYSTEM_STATE;
 
 int led2 = 12;
 int relay1 = 11;
 int button1 = 2;
-int flip_flop = 0;
+bool flip_flop = false;
 
 volatile SYSTEM_STATE currentState = STATE_INIT;
 
 volatile unsigned long previousMillis = 0;
-volatile unsigned long buttonDownMillis = 0;
-volatile unsigned long buttonUpMillis = 0;
+
 volatile unsigned long stopMillis = 0;
 
 volatile int buttonState = 0;
@@ -46,23 +44,16 @@ void loop() {
 	unsigned long currentMillis = millis();
 	static bool bRunning = false;
 
-//	Serial.println((buttonState == 0)?"Up":"Down");
-
 	if (currentMillis - previousMillis >= FLIP_INTERVAL) {
 	    previousMillis = currentMillis;
 
-		if (flip_flop == 0) {
-//			digitalWrite(relay1, HIGH);
-		//	digitalWrite(led2, LOW);
+		if (flip_flop) {
 		    digitalWrite(LED_BUILTIN, LOW);
-			flip_flop = 1;
 		} else {
-//		    digitalWrite(relay1, LOW);
-		//    digitalWrite(led2, HIGH);
 		    digitalWrite(LED_BUILTIN, HIGH);
-
-			flip_flop = 0;
 		}
+
+		flip_flop = !flip_flop;
 	}
 
 	digitalWrite(led2, buttonState);
@@ -81,18 +72,19 @@ void loop() {
 			bRunning = false;
 		}
 	}
-
-//	if (buttonUpMillis != 0) {
-//		Serial.print("button period ");
-//		Serial.print(buttonUpMillis - buttonDownMillis);
-//		Serial.print("\n");
-//		noInterrupts();
-//		buttonUpMillis = buttonDownMillis = 0;
-//		interrupts();
-//	}
 }
 
+/**
+ * Interrupt Service Routine for button.
+ *
+ * Implements a simple debounce algorithm requiring the button up transition after a
+ * finite period of ticks.
+ *
+ */
 void pin_ISR() {
+	static volatile unsigned long buttonDownMillis = 0;
+	static volatile unsigned long buttonUpMillis = 0;
+
 	Serial.println("isr");
 	buttonState = digitalRead(button1);
 	switch (buttonState) {

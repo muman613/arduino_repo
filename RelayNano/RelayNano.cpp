@@ -1,9 +1,13 @@
 #include <Arduino.h>
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 void pin_ISR();
 
-#define FLIP_INTERVAL 1000
-#define BOUNCE_THRESHOLD 80
+#define FLIP_INTERVAL 		1000
+#define BOUNCE_THRESHOLD 	80
 
 typedef enum {
 	STATE_INIT,
@@ -11,21 +15,29 @@ typedef enum {
 	STATE_RUNNING,
 } SYSTEM_STATE;
 
-int led2 = 12;
-int relay1 = 11;
-int button1 = 2;
-bool flip_flop = false;
+const int 	led2 = 12;
+const int 	relay1 = 11;
+const int 	button1 = 2;
 
-volatile SYSTEM_STATE currentState = STATE_INIT;
+volatile bool 				flip_flop = false;
+volatile SYSTEM_STATE 		currentState = STATE_INIT;
+volatile unsigned long 		prevLEDMillis = 0;
+volatile unsigned long 		openRelayMillis = 0;
+volatile int 				buttonState = 0;
 
-volatile unsigned long previousMillis = 0;
+Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64, &Wire);
 
-volatile unsigned long stopMillis = 0;
 
-volatile int buttonState = 0;
+void updatePanel() {
+	return;
+}
 
 void setup() {
 	Serial.begin(115200);
+	Serial.println("Initializing OLED panel...");
+	display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // Address 0x3C for 128x32
+	display.display();
+	delay(1000);
 
 	pinMode(LED_BUILTIN, OUTPUT);
 	pinMode(led2, OUTPUT);
@@ -44,8 +56,8 @@ void loop() {
 	unsigned long currentMillis = millis();
 	static bool bRunning = false;
 
-	if (currentMillis - previousMillis >= FLIP_INTERVAL) {
-	    previousMillis = currentMillis;
+	if (currentMillis - prevLEDMillis >= FLIP_INTERVAL) {
+	    prevLEDMillis = currentMillis;
 
 		if (flip_flop) {
 		    digitalWrite(LED_BUILTIN, LOW);
@@ -59,7 +71,7 @@ void loop() {
 	digitalWrite(led2, buttonState);
 
 	if (currentState == STATE_RUNNING) {
-		if (currentMillis <= stopMillis) {
+		if (currentMillis <= openRelayMillis) {
 			if (bRunning != true) {
 				Serial.println("running");
 			}
@@ -101,7 +113,7 @@ void pin_ISR() {
 		if ((buttonUpMillis - buttonDownMillis) > BOUNCE_THRESHOLD) {
 			if (currentState == STATE_WAITING) {
 				currentState = STATE_RUNNING;
-				stopMillis = millis() + 10000;
+				openRelayMillis = millis() + 10000;
 			}
 		}
 	}

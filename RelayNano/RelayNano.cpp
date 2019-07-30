@@ -15,20 +15,55 @@ typedef enum {
 	STATE_RUNNING,
 } SYSTEM_STATE;
 
-const int 	led2 = 12;
-const int 	relay1 = 11;
+const int 	led2 	= 12;
+const int 	relay1 	= 11;
 const int 	button1 = 2;
 
-volatile bool 				flip_flop = false;
-volatile SYSTEM_STATE 		currentState = STATE_INIT;
-volatile unsigned long 		prevLEDMillis = 0;
+volatile bool 				flip_flop 		= false;
+volatile SYSTEM_STATE 		currentState 	= STATE_INIT;
+volatile unsigned long 		prevLEDMillis 	= 0;
 volatile unsigned long 		openRelayMillis = 0;
-volatile int 				buttonState = 0;
+volatile int 				buttonState 	= 0;
 
 Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64, &Wire);
 
+int getTextWidth(const char * text) {
+	short int x1, y1;
+	unsigned short int w, h;
+	display.getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
+	return w;
+}
+void displayHeader(const char * header) {
+//	short int x1, y1;
+//	unsigned short int w, h;
+	int w;
 
+	display.setTextColor(WHITE);
+	display.setTextSize(2);
+	w = getTextWidth(header);
+//	display.getTextBounds(header, 0, 0, &x1, &y1, &w, &h);
+	display.setCursor((128 - w)/2, 0);
+	display.print(header);
+	display.setTextSize(1);
+	display.display();
+}
+
+/**
+ * Update the OLED panel with current status information.
+ */
 void updatePanel() {
+	char * state = nullptr;
+	if (currentState == STATE_RUNNING) {
+		state = "Running";
+	} else {
+		state = "Waiting";
+	}
+	int w = getTextWidth(state);
+	display.fillRect(0, 16, 128, 48, BLACK);
+	display.drawRect(0, 16, 128, 48, WHITE);
+	display.setCursor((128 - w)/2, 16 + ((48 - 8) / 2));
+	display.print(state);
+	display.display();
 	return;
 }
 
@@ -38,6 +73,8 @@ void setup() {
 	display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // Address 0x3C for 128x32
 	display.display();
 	delay(1000);
+	display.clearDisplay();
+	displayHeader("Status");
 
 	pinMode(LED_BUILTIN, OUTPUT);
 	pinMode(led2, OUTPUT);
@@ -55,6 +92,8 @@ void setup() {
 void loop() {
 	unsigned long currentMillis = millis();
 	static bool bRunning = false;
+
+	updatePanel();
 
 	if (currentMillis - prevLEDMillis >= FLIP_INTERVAL) {
 	    prevLEDMillis = currentMillis;

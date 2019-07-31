@@ -1,3 +1,7 @@
+/**
+ * RelayNano Project
+ * By Michael Uman
+ */
 #include <Arduino.h>
 #include <SPI.h>
 #include <Wire.h>
@@ -33,6 +37,7 @@ int getTextWidth(const char * text) {
 	display.getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
 	return w;
 }
+
 void displayHeader(const char * header) {
 //	short int x1, y1;
 //	unsigned short int w, h;

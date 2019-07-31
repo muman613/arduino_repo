@@ -63,6 +63,10 @@ void updatePanel() {
 	display.drawRect(0, 16, 128, 48, WHITE);
 	display.setCursor((128 - w)/2, 16 + ((48 - 8) / 2));
 	display.print(state);
+
+	if (buttonState == 1) {
+		display.fillCircle(8, 55, 4, WHITE);
+	}
 	display.display();
 	return;
 }
